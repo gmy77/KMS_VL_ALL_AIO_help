@@ -1,0 +1,990 @@
+## In qualche modo spero che sia utile a capire cosa fa veramente questo KMS, riga per riga. Ho saltato certe righe che non hanno nessuna validità per il risultato ultimo, grazie all'aiuto di ChatBOT.
+
+<!-- : Begin batch script: Commento, indica l'inizio dello script batch.
+@setlocal DisableDelayedExpansion: Disabilita l'espansione delle variabili ritardata, isolando le modifiche alle variabili in questo script.
+@set uivr=v49: Imposta la variabile uivr a "v49", potrebbe essere utilizzata in seguito nello script.
+@echo off: Nasconde i comandi eseguiti, rendendo l'output più pulito.
+:: ### Configuration Options ###: Commento, segna l'inizio della sezione delle opzioni di configurazione.
+set _Debug=0: Imposta la modalità debug a 0.
+set ActWindows=1: Abilita l'attivazione di Windows.
+set ActOffice=1: Abilita l'attivazione di Office.
+set AutoR2V=1: Abilita la conversione automatica da Office C2R Retail a Volume.
+set vNextOverride=1: Abilita la sovrascrittura per Office C2R vNext.
+set SkipKMS38=1: Abilita il salto dell'uso di una specifica versione di KMS per Windows 10/11.
+:: ### Unattended Options ###: Commento, segna l'inizio della sezione delle opzioni non assistite.
+set External=0 e set KMS_IP=172.16.0.2: Impostano l'uso di un server KMS esterno.
+set uManual=0: Disabilita la modalità di attivazione manuale.
+set uAutoRenewal=0: Disabilita la modalità di rinnovo automatico dell'attivazione.
+set Silent=0: Abilita o disabilita la soppressione dell'output.
+set Logger=0: Abilita o disabilita la registrazione dell'output su un file di testo.
+:: ### Advanced KMS Options ###: Commento, segna l'inizio della sezione delle opzioni avanzate di KMS.
+set KMS_RenewalInterval=10080: Imposta l'intervallo di rinnovo per KMS.
+set KMS_ActivationInterval=120: Imposta l'intervallo di tentativo di attivazione per KMS.
+set KMS_HWID=0x3A1C049600B60076: Imposta un ID hardware per il server di emulazione KMS.
+Parsing degli Argomenti e Condizioni
+) else if /i "%%A"=="/m" (set fAUR=0&set External=0&set uAutoRenewal=0, ) else if /i "%%A"=="/a" (set fAUR=1&set External=0&set uManual=0, ecc.: Continua con il parsing degli argomenti. Imposta variabili in base agli argomenti passati.
+
+:NoProgArgs: Label per il controllo del flusso dello script.
+
+if exist "%SystemRoot%\\Sysnative\\cmd.exe" if not defined _rel1 ( e simili: Verificano l'esistenza di specifiche versioni del prompt dei comandi e avviano nuove istanze se necessario.
+
+Configurazioni e Impostazioni
+if %External% EQU 1 (if "%KMS_IP%"=="%_uIP%" (set fAUR=0&set External=0) else (set fAUR=0)): Condizioni per impostare le variabili fAUR e External in base al valore di KMS_IP.
+
+set "SysPath=%SystemRoot%\\System32": Imposta il percorso del sistema.
+
+set "_err===== ERROR ====": Imposta una variabile per i messaggi di errore.
+
+set "o_x64=684103f5c312ae956e66a02b965d9aad59710745": Imposta una variabile, forse una sorta di hash o identificativo, per una versione x64.
+
+Variabili dell'Architettura del Processore
+if /i "%PROCESSOR_ARCHITECTURE%"=="amd64" set "xBit=x64"&set "xOS=x64"&set "_orig=%o_x64%": Imposta variabili in base all'architettura del processore.
+Verifiche e Impostazioni di Sistema
+for %%# in (wmic.exe) do @if not "%%~$PATH:#"=="" ( ... ): Verifica se wmic.exe è disponibile nel sistema e imposta la variabile _cwmi a 1 se trovato.
+
+set _pwsh=1: Imposta una variabile che sembra essere utilizzata per determinare se PowerShell è disponibile.
+
+if not exist "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" set _pwsh=0: Verifica se PowerShell è installato nel sistema.
+
+Configurazioni e Variabili
+set _dllPath=%SystemRoot%\\System32: Imposta un percorso per le librerie DLL.
+
+set _dllNum=1: Imposta una variabile, probabilmente per tenere traccia del numero di librerie DLL.
+
+set preparedcolor=0: Sembra impostare una variabile per la formattazione del testo, forse per l'output dello script.
+
+Controlli di Amministrazione e Permesso
+1>nul 2>nul reg query HKU\\S-1-5-19 && ( goto :Passed ) || ( if defined _elev goto :E_Admin ): Verifica se lo script è in esecuzione con privilegi amministrativi.
+
+set _PSarg="""%~f0""" %_args% -elevated: Prepara un argomento per eseguire il prompt dei comandi come amministratore.
+
+:Passed: Label per il controllo del flusso, segnala che i controlli di permesso sono stati superati.
+
+Altre Impostazioni
+set "_utemp=%TEMP%", set "_Local=%LocalAppData%", ecc.: Imposta variabili di ambiente per ulteriori operazioni.
+Variabili e Impostazioni per Office
+set "_mO21a=Detected Office 2021 C2R Retail is activated" e simili: Impostano variabili che indicano lo stato di attivazione per diverse versioni di Office.
+
+set DO15Ids=ProPlus,Standard,Access,Lync,Excel,Groove,InfoPath,OneNote,Outlook,PowerPoint,Publisher,Word e simili: Definiscono variabili con gli ID delle edizioni di Office supportate.
+
+Variabili e Impostazioni per Windows
+set "ESUEditions=Enterprise,EnterpriseE,EnterpriseN,Professional,ProfessionalE,ProfessionalN,Ultimate,UltimateE,UltimateN": Definisce le edizioni di Windows che lo script è in grado di attivare.
+
+set winbuild=%%G: Estrae e memorizza la build di Windows attuale.
+
+Impostazioni per VBScript e WMIC
+set "_csg=cscript.exe //NoLogo //Job:WmiMulti "%~nx0?.wsf" e simili: Impostano i comandi per eseguire vari task con VBScript e WMIC.
+
+if %_cwmi% EQU 0 set WMI_VBS=1: Imposta WMI_VBS a 1 se _cwmi è 0, presumibilmente per decidere quale strumento utilizzare per le query WMI.
+
+set "_zz1=wmic path" e simili: Impostano variabili di utilità che sembrano essere utilizzate nelle query WMI.
+Controllo delle Funzionalità e Impostazioni
+reg query "HKCU\\SOFTWARE\\Microsoft\\Windows Script Host\\Settings" /v Enabled 2>nul | find /i "0x0" 1>nul && (set _WSH=0): Verifica se Windows Script Host è abilitato e imposta _WSH a 0 se non lo è.
+
+if %_WSH% EQU 0 if %WMI_VBS% NEQ 0 goto :E_VBS: Controlla le variabili _WSH e WMI_VBS e va a un punto specifico del codice se sono impostate in un certo modo.
+
+setlocal EnableDelayedExpansion: Abilita l'espansione delle variabili ritardata, permettendo l'uso di variabili all'interno di blocchi di codice come loop e condizioni.
+
+Impostazioni per Debug e Logging
+if %_Debug% EQU 1 if exist "!_log!_Debug.log" (...): Controlla se la modalità debug è abilitata e se esiste un file di log specifico.
+
+if %Silent% EQU 0 (call :Begin) else (call :Begin >!_run! 2>&1): Controlla se lo script deve essere eseguito in modalità silenziosa.
+
+Altre Impostazioni e Controlli
+set "_qr=%_zz7% Win32_OperatingSystem %_zz3% LocalDateTime %_zz8%": Imposta una variabile per una query WMI.
+
+pushd "!_work!": Cambia la directory di lavoro a quella specificata dalla variabile _work.
+
+set "_Nul1=1>nul", set "_Nul2=2>nul", ecc.: Variabili utilizzate per sopprimere l'output.
+Impostazioni di Sistema e Variabili
+set "_wApp=55c92734-d682-4d71-983e-d6ec3f16059f" e simili: Sembra impostare variabili che rappresentano identificatori univoci (forse ID di prodotto) per diverse versioni di Windows e Office.
+
+set "IFEO=HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options": Imposta una variabile per un percorso nel registro di sistema.
+
+set "OPPk=SOFTWARE\\Microsoft\\OfficeSoftwareProtectionPlatform" e simili: Impostano variabili per altri percorsi nel registro di sistema.
+
+set "_Hook="%SysPath%\\SppExtComObjHook.dll": Imposta una variabile per un percorso a una libreria DLL che potrebbe essere utilizzata per agganciare alcune funzioni.
+
+Controlli sui File di Sistema e sulle Versioni
+for /f %%A in ('dir /b /ad %SysPath%\\spp\\tokens\\skus') do (...): Esegue un ciclo che controlla l'esistenza di specifici file di licenza in una directory del sistema.
+
+sc query osppsvc %_Nul3%: Esegue un comando per verificare lo stato del servizio di protezione software di Office (osppsvc).
+
+if %errorlevel% EQU 1060 set OsppHook=0: Imposta una variabile in base all'output del comando precedente.
+
+Altre Impostazioni e Controlli
+set ESU_KMS=0 e simili: Impostano variabili che potrebbero essere utilizzate per attivare funzionalità aggiuntive o edizioni estese di Windows.
+
+if %ESU_KMS% EQU 1 (set "adoff=and LicenseDependsOn is NULL"&set "addon=and LicenseDependsOn is not NULL") else (set "adoff="&set "addon="): Imposta variabili in base al valore di ESU_KMS.
+Impostazioni per Sistema Operativo e Servizi
+if %winbuild% GEQ 9200 (...) else if %winbuild% GEQ 7600 (...) else (...): Controlla la build di Windows e imposta variabili come OSType e SppVer di conseguenza.
+
+reg query "%IFEO%\\sppsvc.exe" %_Nul3% && (...): Verifica e cancella una chiave del registro di sistema relativa al servizio sppsvc.
+
+Variabili e Configurazioni
+set _uRI=%KMS_RenewalInterval%, set _uAI=%KMS_ActivationInterval%, ecc.: Imposta variabili per l'intervallo di rinnovo e di attivazione di KMS.
+
+if %ActWindows% EQU 0 if %ActOffice% EQU 0 set ActWindows=1: Imposta una variabile per attivare Windows se né Windows né Office sono impostati per l'attivazione.
+
+if not defined fAUR if not defined rAUR goto :MainMenu: Controllo del flusso basato su variabili non definite.
+
+Flusso di Controllo e Navigazione nel Menu
+:MainMenu: Label per il menu principale dello script.
+
+mode con cols=80 lines=34, color 07, ecc.: Imposta le dimensioni e il colore della console.
+
+title %_title%: Imposta il titolo della finestra del prompt dei comandi.
+
+Altre Impostazioni
+set Unattend=1, set _ReAR=0, set _AUR=0: Imposta altre variabili che sembrano essere utilizzate per controllare il comportamento dello script durante l'attivazione.
+Variabili di Configurazione e Opzioni del Menu
+set sub_next=0, set sub_o365=0, ecc.: Impostano variabili che potrebbero essere utilizzate per tenere traccia dello stato di attivazione di specifiche edizioni o funzioni di Office.
+
+set _dMode=Manual, set _ReAR=0, set _AUR=0: Impostano variabili per il modo di attivazione (manuale o automatico).
+
+if %_AUR% EQU 0 (set "_dHook=Not Installed") else (set "_dHook=Installed"): Imposta una variabile per indicare se un certo hook è installato o meno.
+
+Controllo del Flusso e Opzioni del Menu
+if %ActWindows% EQU 0 (set _dAwin=No) else (set _dAwin=Yes): Imposta una variabile in base all'opzione di attivazione di Windows.
+
+if %preparedcolor%==0 call :colorprep: Chiama una funzione per preparare i colori per l'output, se necessario.
+
+if %_AUR% EQU 1 (...) else (...): Mostra diverse opzioni nel menu in base al valore di _AUR.
+
+echo [3] Uninstall Completely: Un'opzione del menu per disinstallare completamente.
+
+if %_dDbg%==No (...) else (...): Mostra l'opzione per abilitare la modalità debug.
+Opzioni del Menu e Controllo del Flusso
+if %_dAwin%==Yes (...) else (...): Mostra l'opzione per elaborare Windows in base alla variabile _dAwin.
+
+if %_dAoff%==Yes (...) else (...): Mostra l'opzione per elaborare Office in base alla variabile _dAoff.
+
+if %_dArtv%==Yes (...) else (...): Mostra l'opzione per convertire Office da C2R a R2V in base alla variabile _dArtv.
+
+if %_dNxt%==No (...) else (...): Mostra l'opzione per sovrascrivere Office C2R vNext in base alla variabile _dNxt.
+
+Altre Opzioni del Menu
+echo [8] Check Activation Status {vbs}: Un'opzione per controllare lo stato di attivazione usando VBScript.
+
+echo [9] Check Activation Status {wmi}: Un'opzione per controllare lo stato di attivazione usando WMI.
+
+echo [S] Create $OEM$ Folder: Un'opzione per creare una cartella $OEM$.
+
+echo [D] Decode Embedded Binary Files: Un'opzione per decodificare file binari incorporati.
+
+echo [R] Read Me: Un'opzione per visualizzare informazioni aggiuntive.
+
+echo [E] Activate {External Mode}: Un'opzione per attivare in modalità esterna.
+
+Comandi di Sistema
+if %winbuild% GEQ 10240 (...): Controlla la build di Windows e mostra l'opzione per saltare l'attivazione KMS38 di Windows.
+
+choice /c 1234567890EDRSVX /n /m "> Choose a menu option, or press 0 to Exit: ": Mostra un menu di scelte per l'utente.
+Controllo del Flusso e Gestione delle Scelte del Menu
+set _el=%errorlevel%: Memorizza il valore dell'errorlevel corrente in una variabile per le decisioni future.
+
+if %_el%==16 (...) goto :MainMenu: Controlla il valore di _el e redireziona il flusso del programma al menu principale in base a determinate condizioni. Questo pattern si ripete per vari valori di _el.
+
+if %_el%==10 (set _quit=1&goto :TheEnd): Se l'utente sceglie di uscire, imposta la variabile _quit a 1 e va alla fine dello script.
+
+Preparazione dei Colori e delle Variabili
+:colorprep: Un'etichetta che inizia la sezione per preparare le variabili dei colori.
+
+set preparedcolor=1: Imposta una variabile per indicare che i colori sono stati preparati.
+
+set "_cBlu="44;97m"", set "_cRed="40;91m"", ecc.: Imposta le variabili per i colori da utilizzare nel testo della console.
+
+Altri Settaggi e Funzioni
+:Cfgbg: Un'etichetta che sembra iniziare una sezione per configurare lo sfondo.
+
+echo %_EC%[%~1%~2%_EC%[%~3%~4%_EC%[0m: Sempre in questa sezione, sembra configurare i colori dello sfondo utilizzando codici di escape.
+Funzioni di Stampa e Colore
+:Pfgbg: Un'etichetta che inizia una funzione per la gestione dei colori del testo e dello sfondo.
+
+set "s=!%~2!", set "t=!%~4!": Imposta le variabili s e t con valori passati come argomenti alla funzione.
+
+findstr /a:%~1 /f:.txt ".", findstr /a:%~3 /f:.txt ".": Utilizza findstr per applicare colori al testo utilizzando file temporanei .txt.
+
+Controllo del Flusso per Attivazione e Debug
+:E_IP: Un'etichetta che inizia una sezione per la configurazione di un indirizzo IP esterno per un server KMS.
+
+set /p kip=: Richiede all'utente di inserire un indirizzo IP e lo memorizza nella variabile kip.
+
+:DoActivate: Un'etichetta che inizia la sezione per effettuare l'attivazione.
+
+if %_dDbg%==Yes (...): Controlla se la modalità di debug è attiva e configura i parametri di conseguenza.
+
+if %External% EQU 1 (...): Verifica se è stata impostata una modalità esterna e agisce di conseguenza.
+
+Parametri e Variabili
+set "_para=!_para! /o", set "_para=!_para! /w", ecc.: Imposta una variabile _para con diversi parametri in base alle opzioni selezionate dall'utente.
+Configurazioni per Modo di Attivazione
+if %External% EQU 1 (set _AUR=1): Se la modalità esterna è abilitata, imposta la variabile _AUR a 1.
+
+if %_AUR% EQU 0 (set KMS_RenewalInterval=43200, set KMS_ActivationInterval=43200) else (...): Imposta l'intervallo di rinnovo e di attivazione di KMS in base al valore di _AUR.
+
+color 8F&set "mode=External ^(%KMS_IP%^)": Se in modalità esterna, cambia il colore del prompt e imposta una variabile "mode".
+
+Controllo del Flusso e Titolo della Finestra
+if %Unattend% EQU 0 (if %_Debug% EQU 0 (title %_title%) else (...) ): Imposta il titolo della finestra del prompt dei comandi in base alle variabili _Debug e Unattend.
+
+if %winbuild% GEQ 9600 (...): Aggiunge voci al registro di sistema se la build di Windows è maggiore o uguale a 9600.
+
+Gestione dei Servizi
+call :StopService sppsvc: Chiama una funzione per fermare il servizio di protezione software di Windows (sppsvc).
+
+if %OsppHook% NEQ 0 call :StopService osppsvc: Se la variabile OsppHook è diversa da 0, chiama una funzione per fermare il servizio di protezione software di Office (osppsvc).
+
+Altre Impostazioni
+SET Win10Gov=0, SET "EditionWMI=": Imposta altre variabili, forse per l'identificazione dell'edizione di Windows e altre configurazioni.
+Identificazione dell'Edizione di Windows
+SET "EditionID=", SET "RegKey=HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\Packages": Resetta la variabile EditionID e imposta un percorso nel registro di sistema per ulteriori verifiche.
+
+FOR /F "TOKENS=8 DELIMS=\\" %%A IN (\'REG QUERY "%RegKey%" /f "%Pattern%" /k %_Nul6% ^| FIND /I "CurrentVersion"\') DO (...): Estrae informazioni dall'edizione di Windows corrente consultando il registro di sistema.
+
+Controllo dei Servizi e del Registro
+net start sppsvc /y %_Nul3%: Avvia il servizio di protezione software di Windows.
+
+reg query HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun /v InstallPath %_Nul3%: Interroga il registro per trovare il percorso di installazione di Office ClickToRun.
+
+Variabili e Controllo del Flusso
+set "nKMS=does not support KMS activation...", set "nEval=Evaluation Editions cannot be activated. Please install full Windows OS.": Imposta delle stringhe che saranno probabilmente mostrate all'utente in caso di errori o situazioni specifiche.
+
+if exist "%SystemRoot%\\Servicing\\Packages\\Microsoft-Windows-*EvalEdition~*.mum" set _eval=1: Controlla l'esistenza di specifici file .mum per determinare se la versione di Windows è una edizione di valutazione.
+
+set "_C16R=", set "_C15R=": Inizializza variabili che sembrano riferirsi a differenti versioni di Office (2016 e 2015, presumibilmente).
+Ricerca e Impostazione di Variabili per Office
+reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\Configuration /v ProductReleaseIds %_Nul3% && call set "_C15R=HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\Configuration": Cerca un ID di rilascio per Office 2013 nel registro e imposta una variabile di conseguenza.
+
+if not defined _C15R reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\propertyBag /v productreleaseid %_Nul3% && call set "_C15R=HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\propertyBag": Un controllo aggiuntivo per Office 2013 se la variabile _C15R non è stata definita.
+
+if %_wow%==0 (reg query HKLM\\SOFTWARE\\Microsoft\\Office\\14.0\\CVH /f Click2run /k %_Nul3% && set "_C14R=1") else (...): Cerca informazioni su Office 2010 e imposta una variabile _C14R.
+
+for %%A in (14,15,16,19,21) do call :officeLoc %%A: Esegue una funzione :officeLoc per diverse versioni di Office.
+
+Pulizia e Conclusione
+if exist "!_temp!\\*chk.txt" del /f /q "!_temp!\\*chk.txt": Elimina file temporanei utilizzati per il controllo.
+
+call :StopService sppsvc, if %OsppHook% NEQ 0 call :StopService osppsvc: Ferma i servizi di licenza di Windows e Office.
+
+sc start sppsvc trigger=timer;sessionid=0 %_Nul3%: Avvia il servizio di protezione software di Windows con un trigger basato su timer.
+
+if %Unattend% NEQ 0 goto :TheEnd: Se la variabile Unattend è diversa da zero, termina lo script.
+
+echo Press any key to continue..., pause >nul, goto :MainMenu: Mostra un messaggio all'utente e attende un tasto per continuare, quindi ritorna al menu principale.
+Ricerca e Impostazione di Variabili per Office
+reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\Configuration /v ProductReleaseIds %_Nul3% && call set "_C15R=HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\Configuration": Cerca un ID di rilascio per Office 2013 nel registro e imposta una variabile di conseguenza.
+
+if not defined _C15R reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\propertyBag /v productreleaseid %_Nul3% && call set "_C15R=HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\propertyBag": Un controllo aggiuntivo per Office 2013 se la variabile _C15R non è stata definita.
+
+if %_wow%==0 (reg query HKLM\\SOFTWARE\\Microsoft\\Office\\14.0\\CVH /f Click2run /k %_Nul3% && set "_C14R=1") else (...): Cerca informazioni su Office 2010 e imposta una variabile _C14R.
+
+for %%A in (14,15,16,19,21) do call :officeLoc %%A: Esegue una funzione :officeLoc per diverse versioni di Office.
+
+Pulizia e Conclusione
+if exist "!_temp!\\*chk.txt" del /f /q "!_temp!\\*chk.txt": Elimina file temporanei utilizzati per il controllo.
+
+call :StopService sppsvc, if %OsppHook% NEQ 0 call :StopService osppsvc: Ferma i servizi di licenza di Windows e Office.
+
+sc start sppsvc trigger=timer;sessionid=0 %_Nul3%: Avvia il servizio di protezione software di Windows con un trigger basato su timer.
+
+if %Unattend% NEQ 0 goto :TheEnd: Se la variabile Unattend è diversa da zero, termina lo script.
+
+echo Press any key to continue..., pause >nul, goto :MainMenu: Mostra un messaggio all'utente e attende un tasto per continuare, quindi ritorna al menu principale.
+Controllo delle Licenze e Attivazione di Office
+set "_qr=%_zz7% %spp% %_zz2% %_zz5%ApplicationID=\'%_oApp%\' and Description like \'%%KMSCLIENT%%\' %_zz6% %_zz3% ID %_zz8%": Configura una query per cercare nel servizio di attivazione KMS per Office.
+
+if %Off1ce% EQU 1 if %ActOffice% NEQ 0 for /f "tokens=2 delims==" %%G in (\'%_qr%\') do (set app=%%G&call :sppchkoff 1): Utilizza la query configurata per controllare l'attivazione di Office.
+
+Pulizia del Registro e Variabili di Controllo
+reg delete "HKLM\\%SPPk%" /f /v DisableDnsPublishing %_Null%: Cancella una chiave del registro che disabilita la pubblicazione DNS.
+
+set vol_off14=0&set vol_off15=0&set vol_off16=0&set vol_off19=0&set vol_off21=0: Inizializza diverse variabili che sembrano riferirsi alle versioni di Office.
+
+Altri Controlli e Operazioni
+set OffUWP=0: Inizializza una variabile che potrebbe riferirsi a una versione UWP di Office.
+
+if %loc_off21% EQU 0 if %loc_off19% EQU 0 if %loc_off16% EQU 0 if %loc_off15% EQU 0 (...): Serie di controlli incatenati per determinare quale versione di Office è installata.
+
+find /i "Office 21" "!_temp!\\sppchk.txt" %_Nul1% && (set vol_off21=1): Cerca una stringa specifica in un file temporaneo per settare una variabile.
+Controllo delle Licenze e Attivazione di Office
+if %vol_off16% EQU 1 find /i "Office16MondoVL_KMS_Client" "!_temp!\\sppchk.txt" %_Nul1% && (...): Verifica la presenza di una stringa specifica nel file temporaneo e poi controlla ulteriormente con una query.
+
+set ret_off14=0&set ret_off15=0&set ret_off16=0&set ret_off19=0&set ret_off21=0: Inizializza variabili di ritorno per varie versioni di Office.
+
+find /i "R_Retail" "!_temp!\\sppchk.txt" %_Nul2% | find /i "Office 21" %_Nul1% && (set ret_off21=1): Cerca una stringa specifica in un file temporaneo e imposta una variabile di conseguenza.
+
+Variabili per il Controllo del Flusso
+set run_off21=0&set prr_off21=0&set prv_off21=0: Inizializza variabili che controllano se Office 2021 dovrebbe essere eseguito e variabili per il conteggio delle versioni retail e VL.
+
+for %%a in (%DO16Ids%) do find /i "Office21%%a2021R" "!_temp!\\sppchk.txt" %_Nul1% && (...): Un ciclo for che controlla varie edizioni di Office 2021 e aggiorna le variabili di conteggio.
+Controllo delle Licenze e Attivazione di Office
+for %%a in (%DO16Ids%) do find /i "Office19%%a2019R" "!_temp!\\sppchk.txt" %_Nul1% && (...): Questo ciclo for controlla la presenza di diverse versioni di Office 2019 e aggiorna le variabili di conteggio.
+
+if %loc_off19% EQU 1 if %ret_off19% EQU 1 if %_O16MSI% EQU 0 if %vol_off19% EQU 1 if %prv_off19% LSS %prr_off19% (set vol_off19=0&set run_off19=1): Questa istruzione condizionale complessa esegue ulteriori controlli e setta variabili basate su diversi fattori come la versione di Office, il tipo di licenza, ecc.
+
+set run_off16=0&set prr_off16=0&set prv_off16=0: Inizializza variabili che controllano se Office 2016 dovrebbe essere eseguito e variabili per il conteggio delle versioni retail e VL.
+
+Altri Controlli e Operazioni
+if %vol_off16% EQU 1 if %vol_off21% EQU 0 if %vol_off19% EQU 0 find /i "Office16%%aVL" "!_temp!\\sppchk.txt" %_Nul1% && call set /a prv_off16+=1: Questo blocco contiene istruzioni condizionali annidate che eseguono vari controlli basati su variabili inizializzate in precedenza.
+
+if %sub_proj% EQU 0 for %%a in (ProjectPro,ProjectStd) do find /i "Office16%%aR" "!_temp!\\sppchk.txt" %_Nul1% && (...): Controlla la presenza di versioni di Project e aggiorna le variabili di conteggio.
+Controllo delle Licenze e Attivazione di Office
+Le righe che iniziano con if %loc_off16% EQU 1 e if %loc_off15% EQU 1 sono istruzioni condizionali che effettuano controlli multipli sulle versioni installate di Office 2016 e Office 2015, rispettivamente. Queste righe determinano se eseguire l'attivazione o meno.
+
+I cicli for che seguono tali istruzioni condizionali controllano specifiche versioni di Office 2015 (come Project e Visio) e aggiornano contatori relativi al numero di versioni Retail e Volume License (VL) installate.
+
+Variabili di Controllo e Flusso
+set vol_offgl=1: Imposta una variabile che sembra riferirsi a una sorta di controllo globale del volume.
+
+if %vol_off21% EQU 0 if %vol_off19% EQU 0 if %vol_off16% EQU 0 if %vol_off15% EQU 0 (...): Questa istruzione condizionale controlla le variabili di volume per diverse versioni di Office e Windows, e modifica vol_offgl di conseguenza.
+
+if %run_off21% EQU 1 if %AutoR2V% EQU 1 if %RanR2V% EQU 0 goto :C2RR2V: Se determinate condizioni sono soddisfatte, lo script salta alla sezione :C2RR2V, che sembra essere un blocco per la conversione da Retail a Volume License.
+Controllo delle Licenze e Attivazione di Office
+Le istruzioni if %run_off16% EQU 1 if %AutoR2V% EQU 1 if %RanR2V% EQU 0 goto :C2RR2V e analoghe per altre versioni di Office determinano se saltare a una sezione specifica per convertire la licenza da Retail a Volume.
+
+Le righe che iniziano con if %loc_off21% EQU 1 if %vol_off21% EQU 0 ( e simili per altre versioni di Office effettuano controlli sulla versione e sul tipo di licenza installata e visualizzano messaggi all'utente a seconda delle condizioni.
+
+Messaggi e Variabili di Controllo
+Le variabili come %_mO21a%, %_mO19c% sembrano essere messaggi predefiniti che verranno mostrati all'utente a seconda delle condizioni.
+
+:sppchkoff e :sppchkwin sembrano essere etichette per parti di script che effettuano controlli sul servizio di protezione software (SPP) per Office e Windows, rispettivamente.
+
+Altri Dettagli
+exit /b: Questa è una istruzione comune per uscire da un blocco di codice batch e ritornare al chiamante.
+
+set "_qr=%_zz1% %spp% %_zz2% %_zz5%PartialProductKey is not NULL%_zz6% %_zz3% ID %_zz4%": Questa è una configurazione di query per controllare la presenza di una chiave di prodotto parziale.
+Controllo delle Licenze e Attivazione di Office e Windows
+Diverse istruzioni if /i che controllano una variabile %app% contro una serie di identificatori univoci, apparentemente collegati a specifiche edizioni di Windows. Questi controlli sembrano destinati a verificare se una particolare edizione di Windows è installata.
+
+set "_qr=%_zz1% %spp% %_zz2% "Description like \'%%KMSCLIENT%%\'" %_zz3% ID %_zz4%": Imposta una query per cercare nel servizio di attivazione KMS per Windows.
+
+call :winchk: Sembra chiamare un segmento di codice etichettato come :winchk che effettua ulteriori controlli sulle licenze di Windows.
+
+Variabili di Controllo e Flusso
+if not defined tok (if %winbuild% GEQ 9200 (set "tok=4") else (set "tok=7")): Questa riga controlla la versione di Windows installata e imposta una variabile tok di conseguenza.
+
+exit /b: Questa è una istruzione comune per uscire da un blocco di codice batch e ritornare al chiamante.
+Controllo delle Licenze e Attivazione di Windows
+set "_qr=%_zz1% %spp% %_zz2% %_zz5%LicenseStatus=\'1\' and GracePeriodRemaining=\'0\' %adoff% and PartialProductKey is not NULL%_zz6% %_zz3% Name %_zz4%": Imposta una query per controllare se Windows è attivato e se il periodo di grazia è scaduto.
+
+set WinOEM=0: Inizializza una variabile che indica se la versione di Windows è OEM o no.
+
+if %WinOEM% EQU 1 (for /f "tokens=%tok% delims=, " %%G in (\'%_qr%\') do set "channel=%%G"): Se la versione è OEM, imposta il canale di licenza corrispondente.
+
+Controllo del Flusso e Attivazione
+if %WinPerm% EQU 0 (copy /y %SysPath%\\slmgr.vbs "!_temp!\\slmgr.vbs" %_Nul3%): Se Windows non è attivato permanentemente, copia slmgr.vbs in una directory temporanea per l'uso successivo.
+
+call :insKey e exit /b: Chiama una subroutine per inserire la chiave di licenza e poi esce dal blocco di codice.
+
+Controllo delle Licenze di Office Specifiche
+:esuchk e le righe che seguono sembrano essere una parte di codice che controlla specifiche edizioni di Office per lo stato della licenza. Utilizza una serie di query per cercare specifici identificatori di applicazione e controllare lo stato della licenza.
+Controllo delle Licenze e Attivazione di Office e Windows
+set "_qr=%_zz1% %spp% %_zz2% %_zz5%ID=\'16c08c85-0c8b-4009-9b2b-f1f7319e45f9\'%_zz6% %_zz3% LicenseStatus %_zz4%": Imposta una query per controllare lo stato della licenza basato su un ID specifico. Questo schema si ripete per diversi ID univoci, presumibilmente per differenti edizioni di Windows o Office.
+
+call :insKey: Chiama una subroutine che sembra destinata a inserire una chiave di prodotto.
+
+exit /b: Uscita dal blocco di codice corrente.
+
+Altre operazioni e Controllo del Flusso
+:RunOSPP e le righe che seguono sembrano essere una parte di codice dedicata all'esecuzione di alcune operazioni di controllo delle licenze per Office. In particolare, sembra che avvii il servizio osppsvc e controlli la sua esistenza.
+
+reg add "HKLM\\%OPPk%" /f /v KeyManagementServiceName /t REG_SZ /d "%KMS_IP%" %_Nul3%: Aggiunge una voce al registro di sistema per specificare l'indirizzo IP del server KMS.
+
+for /f "tokens=2 delims==" %%G in (\'%_qr%\') do (set app=%%G&call :sppchkoff 2): Un ciclo for che effettua un controllo sul servizio di protezione software (SPP) per Office.
+Controllo delle Licenze e Attivazione di Office
+:oppoff e :offchk: Questi sono segmenti di codice dedicati al controllo dello stato delle licenze di Office. Utilizzano variabili come _qr per eseguire query sul servizio di protezione software (SPP) e verificare lo stato delle licenze.
+
+set Off1ce=1: Imposta una variabile che indica che Office è presente nel sistema.
+
+if "%ls%"=="1" (...) echo Product is Permanently Activated.: Controlla lo stato della licenza e visualizza un messaggio se il prodotto è attivato permanentemente.
+
+call :insKey: Chiama una subroutine che sembra destinata a inserire una chiave di prodotto.
+
+exit /b: Uscita dal blocco di codice corrente.
+
+Controllo del Flusso e Altre Operazioni
+if /i '%app%' EQU 'f3fb2d68-83dd-4c8b-8f09-08e0d950ac3b' exit /b: Queste righe controllano specifici identificatori di applicazione e escono dal blocco di codice se corrispondono.
+
+set "_qr=%_zz7% %spp% %_zz2% %_zz5%LicenseFamily=\'Office%~5\'%_zz6% %_zz3% LicenseStatus %_zz8%": Imposta una query per controllare lo stato della licenza basato su un ID specifico. Questo schema si ripete per diversi ID univoci, presumibilmente per differenti edizioni di Office.
+Controllo delle Licenze e Attivazione di Office
+Questo segmento è costellato di istruzioni if /i '%app%' EQU ..., ciascuna delle quali confronta una variabile %app% con un identificatore univoco. Ogni identificatore sembra corrispondere a una specifica edizione di Office (come "Office ProPlus 2021", "Project Pro 2021", "Visio Pro 2021", ecc.).
+
+call :offchk "21ProPlus2021VL_MAK_AE1" "Office ProPlus 2021" "21ProPlus2021VL_MAK_AE2": Questo esempio chiama una subroutine denominata :offchk con parametri specifici per una edizione di Office. Questo schema si ripete per varie edizioni.
+
+exit /b: Termina il blocco di codice attuale e ritorna al chiamante.
+
+Controllo del Flusso
+call :insKey: Chiama una subroutine che sembra destinata a inserire una chiave di prodotto.
+Controllo delle Licenze e Attivazione di Office
+Questo segmento continua con le istruzioni condizionali if /i '%app%' EQU ..., ognuna delle quali controlla un identificatore univoco che sembra corrispondere a una specifica edizione di Office (come "Office ProPlus 2016", "Project Pro 2016", "Visio Pro 2016", ecc.).
+
+call :offchk "16ProPlusVL_MAK" "Office ProPlus 2016": Questa linea, come le altre simili, chiama una subroutine chiamata :offchk con parametri specifici per una edizione di Office. Questo schema si ripete per varie edizioni.
+
+exit /b: Questa istruzione termina il blocco di codice corrente e ritorna al chiamante.
+
+Controllo del Flusso
+call :insKey: Questa istruzione chiama una subroutine che sembra destinata a inserire una chiave di prodotto.
+Controllo delle Licenze e Attivazione di Office
+Questo segmento continua con le istruzioni condizionali if /i '%app%' EQU ..., ognuna delle quali controlla un identificatore univoco che sembra corrispondere a una specifica edizione di Office (come "Office ProPlus 2013", "Project Pro 2013", "Visio Pro 2013", ecc.).
+
+call :offchk "ProPlusVL_MAK" "Office ProPlus 2013": Questa linea, come le altre simili, chiama una subroutine chiamata :offchk con parametri specifici per una edizione di Office. Questo schema si ripete per varie edizioni.
+
+exit /b: Questa istruzione termina il blocco di codice corrente e ritorna al chiamante.
+
+Controllo del Flusso
+call :insKey: Questa istruzione chiama una subroutine che sembra destinata a inserire una chiave di prodotto.
+Controllo delle Licenze e Attivazione di Office
+Come nei blocchi precedenti, ci sono diverse istruzioni if /i '%app%' EQU ... che controllano un identificatore univoco. Questi sembrano corrispondere a specifiche edizioni di Office come "Visio Premium 2010", "Visio Pro 2010" e "Visio Standard 2010".
+
+call :offchk "VisioPrem-MAK" "Visio Premium 2010" "VisioPro-MAK" "Visio Pro 2010": Questa riga chiama una subroutine :offchk con parametri specifici per una edizione di Office.
+
+exit /b: Termina il blocco di codice corrente e ritorna al chiamante.
+
+Altre Operazioni e Controllo del Flusso
+:officeLoc e le righe che seguono sembrano essere dedicate al rilevamento della posizione dell'installazione di Office sul sistema. Utilizzano query del registro di sistema per determinare se Office è installato e dove.
+
+for /f "skip=2 tokens=2*" %%a in (\'"reg query HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Office\\%1.0\\Common\\InstallRoot /v Path" %_Nul6%\') do if exist "%%b\\OSPP.VBS" (...): Questa riga effettua una query del registro di sistema per individuare la posizione di OSPP.VBS, uno script utilizzato per l'attivazione di Office.
+Rilevamento della Posizione di Installazione di Office
+if exist "%ProgramFiles%\\Microsoft Office\\Office%1\\OSPP.VBS" set loc_off%1=1: Controlla l'esistenza di OSPP.VBS in specifiche directory e imposta una variabile corrispondente se esiste.
+
+if not %xOS%==x86 if exist "%ProgramW6432%\\Microsoft Office\\Office%1\\OSPP.VBS" set loc_off%1=1: Fa lo stesso per sistemi a 64 bit.
+
+Controllo delle Sottoscrizioni di Office
+:officeSub e le righe successive eseguono una serie di query del registro per determinare il tipo di sottoscrizione di Office. Utilizzano espressioni regolari per filtrare i risultati e impostare variabili come sub_o365, sub_proj e sub_vsio in base ai risultati.
+Inserimento delle Chiavi di Licenza
+:insKey e le righe che seguono sembrano essere una subroutine per l'inserimento delle chiavi di licenza. Utilizzano una variabile _key e eseguono una serie di operazioni WMI (Windows Management Instrumentation) per installare la chiave e aggiornare lo stato della licenza.
+
+if %sps% EQU SoftwareLicensingService %_qr% %_Nul3%: Questa riga sembra essere una chiamata WMI per aggiornare lo stato della licenza.
+
+Altre Operazioni
+:activate: Questa è probabilmente una subroutine per l'attivazione, ma il codice non è completo in questo "chunk".
+Operazioni di Attivazione e Controllo delle Licenze
+if %sps% EQU SoftwareLicensingService (...) reg add "HKLM\\%SPPk%\\%_wApp%\\%app%" /f /v KeyManagementServiceName /t REG_SZ /d "127.0.0.2": Questa sezione sembra aggiungere dettagli del server KMS al registro di sistema, impostando specifiche chiavi con l'indirizzo IP "127.0.0.2".
+
+set "_qr=wmic path %spp% where ID=\'%app%\' call Activate": Esegue una chiamata WMI per attivare una specifica applicazione (presumibilmente una versione di Windows o Office) basata sul suo ID.
+
+if %ERRORCODE% EQU -1073418187 (...): Segue una serie di controlli sugli errori che potrebbero verificarsi durante l'attivazione. Ad esempio, un errore con codice -1073418187 sembra indicare un fallimento dell'attivazione dovuto a un BIOS non qualificato.
+
+Altre Operazioni e Controllo del Flusso
+if %ERRORCODE% NEQ 0 (...): Se l'errore non è zero, sembra che lo script tenti di fermare specifici servizi (sppsvc per Windows, osppsvc per Office) e rieseguire il comando di attivazione.
+
+set gpr=0, set gpr2=0: Inizializza due variabili che sembrano essere utilizzate per calcolare il "periodo di grazia" rimanente per l'attivazione.
+
+for /f "tokens=2 delims==" %%x in (\'%_qr%\') do (set gpr=%%x&set /a "gpr2=(%%x+1440-1)/1440"): Questa riga sembra raccogliere informazioni sul periodo di grazia rimanente per l'attivazione.
+Operazioni di Attivazione e Controllo delle Licenze
+if %gpr% EQU 43200 if %_officespp% EQU 0 if %winbuild% GEQ 9200 set Act_OK=1: Questa riga sembra controllare vari parametri, come il "periodo di grazia" rimanente (gpr), la versione di Windows (winbuild) e una variabile relativa a Office (_officespp), per determinare se l'attivazione è stata riuscita.
+
+if %ERRORCODE% EQU 0 if %Act_OK% EQU 1 (...): Controlla se il codice di errore è zero e se l'attivazione è stata riuscita, quindi visualizza un messaggio di successo.
+
+Altre Operazioni e Controllo del Flusso
+:StopService: Una subroutine che sembra essere usata per fermare un servizio. Utilizza comandi come sc query e net stop per farlo.
+
+:InstallHook: Inizia una nuova subroutine che sembra essere utilizzata per installare un emulatore KMS locale. Questa sezione include vari controlli condizionali che sembrano legati alle opzioni di debug e verbosità dello script.
+
+set "_qr=WMIC /NAMESPACE:\\\\root\\Microsoft\\Windows\\Defender PATH MSFT_MpPreference call Add ExclusionPath=%_Hook% Force=True": Questa riga aggiunge un percorso di esclusione al Defender di Windows. Questo è un comportamento potenzialmente rischioso perché potrebbe escludere un percorso che contiene malware.
+Operazioni di Debug e Gestione dei Servizi
+if %_AUR% EQU 1 (call :StopService sppsvc if %OsppHook% NEQ 0 call :StopService osppsvc): Questa riga sembra fermare servizi specifici (sppsvc per Windows, osppsvc per Office) se una certa condizione è soddisfatta (la variabile _AUR è impostata a 1).
+
+for %%# in (SppExtComObjHookAvrf.dll, SppExtComObjHook.dll, SppExtComObjPatcher.dll, SppExtComObjPatcher.exe) do (...): Questa riga elimina una serie di file DLL e EXE da specifiche directory. Questo potrebbe essere un comportamento rischioso.
+
+Modifiche al Registro e File System
+set "TMP=%SystemRoot%\\Temp" e set "TEMP=%SystemRoot%\\Temp": Imposta variabili d'ambiente per le cartelle temporanee.
+
+%_Nul3% %_psc% "$d=\'%_dllPath%\'...: Esegue uno script PowerShell che sembra leggere un file di testo e eseguirne il contenuto.
+
+if %SSppHook% NEQ 0 call :CreateIFEOEntry %SppVer%: Questa riga crea una voce IFEO (Image File Execution Options) nel registro, che è un meccanismo spesso utilizzato per il debugging ma che può anche essere abusato da malware.
+
+Altre Operazioni e Controllo del Flusso
+if %_verb% EQU 1 echo.&echo %line3%&echo.: Questa riga stampa delle informazioni se la modalità verbosa è abilitata.
+
+goto :%_rtr%: Va a un'altra sezione dello script in base al valore di una variabile.
+
+:RemoveHook: Inizia una nuova sezione che sembra essere dedicata alla rimozione di un hook o emulatore KMS.
+
+In sintesi, questo "chunk" sembra focalizzato sul debug, sulla gestione dei servizi e su alcune modifiche potenzialmente rischiose al registro e al file system. Include anche codice che potrebbe essere utilizzato per la rimozione di un emulatore KMS o hook.
+Rimozione di File e Modifiche al Registro
+for %%# in (SppExtComObjHookAvrf.dll, SppExtComObjHook.dll, SppExtComObjPatcher.dll, SppExtComObjPatcher.exe) do if exist "%SysPath%\\%%#" (...): Questa riga elimina una serie di file DLL e EXE da specifiche directory. Ancora una volta, questo è un comportamento che potrebbe essere potenzialmente rischioso.
+
+for %%# in (SppExtComObj.exe, sppsvc.exe, osppsvc.exe) do reg query "%IFEO%\\%%#" %_Nul3% && (...): Questa riga rimuove alcune chiavi IFEO dal registro di sistema. Le chiavi IFEO possono essere utilizzate per il debugging, ma anche per alterare il comportamento di eseguibili specifici.
+
+Altre Operazioni e Controllo del Flusso
+:RemoveHook: Questa sezione sembra essere la continuazione della parte dello script dedicata alla rimozione di un emulatore KMS o hook.
+
+if %OSType% EQU Win8 schtasks /query /tn "%_TaskEx%" %_Nul3% && (...): Questa riga controlla l'esistenza di un compito pianificato e lo rimuove se esiste.
+
+goto :eof: Questa istruzione termina l'esecuzione dello script.
+
+In sintesi, questo "chunk" sembra concentrarsi sulla rimozione di file e chiavi del registro che sono stati precedentemente impostati dallo script. Include anche la rimozione di un compito pianificato e termina l'esecuzione dello script.
+
+Dato che questo è un script piuttosto complesso con molte operazioni, è difficile dare un giudizio definitivo senza conoscere il contesto specifico in cui viene utilizzato. Tuttavia, alcune delle operazioni svolte dallo script potrebbero rappresentare potenziali rischi per la sicurezza, come la modifica delle chiavi del registro e la rimozione di file di sistema.
+Modifiche al Registro di Sistema per IFEO
+:CreateIFEOEntry e :RemoveIFEOEntry: Queste sezioni dello script aggiungono o rimuovono voci IFEO (Image File Execution Options) nel registro di sistema. Questo meccanismo è spesso utilizzato per il debugging, ma può anche essere utilizzato per alterare il comportamento degli eseguibili.
+
+reg add "%IFEO%\\%1" /f /v ...: Aggiunge vari valori al registro di sistema sotto una chiave IFEO, inclusi dettagli come KMS_Emulation, KMS_ActivationInterval, e KMS_RenewalInterval.
+
+Aggiornamento delle Voci di Registro
+:UpdateIFEOEntry: Questa sezione aggiorna le voci IFEO nel registro di sistema con nuovi valori per l'intervallo di attivazione e rinnovo KMS.
+
+:UpdateOSPPEntry: Aggiorna le chiavi del registro relative al servizio di attivazione di Office (osppsvc.exe), impostando i dettagli del server KMS.
+
+Altri Dettagli
+goto :eof: Questa istruzione termina l'esecuzione della subroutine e ritorna al chiamante.
+Verifica della Presenza di File e Valori di Registro
+:CheckFR: Questa sezione sembra essere dedicata alla verifica della presenza di file e valori di registro specifici sul sistema.
+
+if not exist %_Hook% (...): Controlla l'esistenza di un file specificato dalla variabile _Hook e mostra un messaggio di errore se il file non esiste.
+
+for /f "skip=1 tokens=* delims=" %%# in (\'certutil -hashfile %_Hook% SHA1^|findstr /i /v CertUtil\') do set "_hash=%%#": Calcola l'hash SHA1 del file specificato e lo confronta con un hash atteso.
+
+Controllo e Modifica del Registro di Sistema
+if /i not "%_hash%"=="%_orig%" (...): Mostra un messaggio di errore se l'hash del file non corrisponde all'hash atteso.
+
+if %SSppHook% NEQ 0 for %%A in (VerifierDlls,VerifierDebug,VerifierFlags,GlobalFlag,KMS_Emulation) do (...): Verifica la presenza di specifici valori nel registro di sistema e imposta una variabile E_REG a 1 se mancano.
+
+if %E_REG% EQU 1 (...): Mostra un messaggio di errore se alcuni valori richiesti nel registro di sistema sono mancanti.
+Verifica dei Servizi e Query WMI
+set WMIe=0 e call :CheckWS: Queste righe iniziano una verifica WMI (Windows Management Instrumentation) per assicurarsi che i servizi necessari siano in esecuzione.
+
+if %WMIe% EQU 1 (...): Se la verifica WMI fallisce, vengono mostrati messaggi di errore e suggerimenti su quali servizi dovrebbero essere controllati.
+
+Modifiche al Registro di Sistema per KMS
+:cREG: Questa sezione sembra essere dedicata alle modifiche al registro di sistema per la configurazione del server KMS.
+
+reg add "HKLM\\%SPPk%" /f /v KeyManagementServiceName /t REG_SZ /d "%_uIP%": Questa e altre righe simili aggiungono o modificano voci nel registro di sistema relative al server KMS, come il nome e la porta del server.
+
+reg delete "HKLM\\%SPPk%" /f /v DisableDnsPublishing: Questa e altre righe simili rimuovono alcune impostazioni specifiche dal registro di sistema.
+
+if %winbuild% GEQ 9200 (...): Questa sezione contiene ulteriori modifiche al registro di sistema che sono specifiche per le versioni di Windows uguali o superiori a 9200 (Windows 8 e versioni successive).
+Modifiche al Registro di Sistema per KMS
+:rREG: Questa sezione sembra essere dedicata alla rimozione delle modifiche al registro di sistema fatte dalla configurazione del server KMS.
+
+reg delete "HKLM\\%SPPk%" /f /v KeyManagementServiceName, ...: Vari comandi che rimuovono specifiche voci del registro relative all'attivazione KMS per Windows e Office.
+
+Controllo e Pulizia della Cache KMS
+:cCache: Questa sezione sembra essere dedicata alla pulizia della cache KMS.
+
+echo Clearing KMS Cache...: Mostra un messaggio per indicare che la cache KMS sta per essere cancellata.
+
+for /f "skip=2 tokens=2*" %%a in (...): Queste righe sembrano eseguire query del registro per trovare il percorso di installazione di Office e quindi verificare la presenza di determinati file di licenza.
+
+if %winbuild% GEQ 9200 if defined _C16R (...): Questa sezione sembra essere una sorta di avviso per l'utente, anche se il testo completo non è visibile in questo "chunk".
+Pianificazione delle Attività e Controllo dei Flussi
+:CreateTask: Una sezione dedicata alla creazione di un compito pianificato. Utilizza il comando schtasks per interrogare, creare e modificare compiti pianificati.
+
+if %Unattend% NEQ 0 goto :TheEnd: Se la variabile Unattend è diversa da zero, lo script terminerà il suo esecuzione.
+
+schtasks /query /tn "%_TaskEx%" %_Nul3% || (...): Controlla l'esistenza di un compito pianificato e lo crea se non esiste.
+
+Gestione dei File e delle Variabili
+pushd %_temp%: Cambia la directory corrente alla directory temporanea specificata dalla variabile %_temp%.
+
+%_Nul3% %_psc% "$f=[IO.File]::ReadAllText(\'!_batp!\') -split \':spptask\\:.*\'; (...): Esegue uno script PowerShell per leggere un file di testo e scrivere una parte di esso in un nuovo file chiamato SvcTrigger.xml.
+
+Visualizzazione di Messaggi e Documentazione
+:CreateReadMe: Una sezione che crea un file HTML di documentazione, chiamato ReadMeAIO.html, nella directory %PUBLIC%.
+
+if exist "%PUBLIC%\\ReadMeAIO.html" start "" "%PUBLIC%\\ReadMeAIO.html": Apre il file di documentazione se esiste.
+
+timeout /t 2 %_Nul3%: Mette in pausa l'esecuzione dello script per 2 secondi.
+Creazione e Gestione di File e Cartelle
+if not exist "!_oem!\\$OEM$\\$$\\Setup\\Scripts\\KMS_VL_ALL_AIO.cmd" mkdir "!_oem!\\$OEM$\\$$\\Setup\\Scripts": Crea una nuova cartella se non esiste già.
+
+copy /y "!_batf!" "!_oem!\\$OEM$\\$$\\Setup\\Scripts\\KMS_VL_ALL_AIO.cmd" %_Nul3%: Copia un file CMD in una cartella specificata.
+
+echo @echo off, echo call %%~dp0KMS_VL_ALL_AIO.cmd /s /a, ...: Scrive alcune righe di codice batch in un nuovo file chiamato setupcomplete.cmd.
+
+Gestione degli Script e delle Risorse Incorporate
+:CreateBIN: Questa sezione sembra essere dedicata alla creazione di una cartella contenente file binari.
+
+%_Nul3% %_psc% "cd -Lit ($env:__CD__); $f=[IO.File]::ReadAllText(\'!_batp!\') -split \':embdbin\\:.*\'; ...": Esegue uno script PowerShell che legge un file di testo e decodifica alcune risorse incorporate.
+
+Visualizzazione di Messaggi all'Utente
+echo $OEM$ Folder Created..., echo Press any key to continue..., pause >nul, goto :eof: Queste righe visualizzano messaggi all'utente e attendono un input da tastiera.
+Gestione dei File e delle Variabili
+%_Nul3% ren 4 SppExtComObjHook-arm64.dll: Rinomina un file DLL.
+popd: Ripristina la directory di lavoro precedente.
+Visualizzazione di Messaggi all'Utente
+echo Binaries Folder Created..., echo Press any key to continue..., pause >nul, goto :eof: Queste righe visualizzano un messaggio all'utente riguardo alla creazione di una cartella di binari e poi attendono un input da tastiera.
+Gestione delle Licenze di Office
+:C2RR2V: Questa etichetta sembra indicare una sezione dedicata alla conversione di licenze Office da C2R a Volume.
+
+set "_SLMGR=%SysPath%\\slmgr.vbs": Imposta la variabile _SLMGR al percorso dello script slmgr.vbs, che è uno strumento di gestione delle licenze software di Windows.
+
+sc query ClickToRunSvc %_Nul3%, sc query OfficeSvc %_Nul3%: Query per verificare se i servizi ClickToRun e Office sono in esecuzione sul sistema.
+
+if exist "%%b\\root\\Licenses16\\ProPlus*.xrm-ms" (...): Controlla l'esistenza di specifici file di licenza per Office 2016 e 2015.
+
+Controllo degli Errori e del Flusso
+if %error1% EQU 1060 if %error2% EQU 1060 (...): Controlla gli errori restituiti dai comandi precedenti e stampa un messaggio di errore se i servizi necessari non sono rilevati.
+
+if %_Office16% EQU 0 if %_Office15% EQU 0 (...): Stampa un messaggio di errore se non viene rilevato un percorso di installazione per Office 2016 o 2015.
+Gestione delle Licenze di Office e Controllo del Registro
+:Reg15istry: Un'etichetta che sembra indicare l'inizio di una sezione dedicata alla gestione delle licenze di Office 2013 (15.0).
+
+set "_Install15Root=", set "_Product15Ids=", ...: Inizializzazione di diverse variabili che saranno utilizzate per immagazzinare informazioni riguardanti l'installazione di Office e le licenze.
+
+for /f "skip=2 tokens=2*" %%a in (\'"reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun /v InstallPath" %_Nul6%\') do (set "_Install15Root=%%b\\root"): Interrogazione del registro di sistema per ottenere il percorso di installazione di Office 2013.
+
+if not "%_Install15Root%"=="" (...): Se il percorso di installazione di Office 2013 è stato trovato, vengono eseguite ulteriori operazioni per recuperare dettagli come gli ID dei prodotti e altri percorsi relativi.
+
+Controllo degli Errori e Flusso dello Script
+if "%_ProductIds%"=="" (...): Controlla se gli ID del prodotto per Office sono stati trovati; in caso contrario, esegue una sezione di codice specifica.
+
+if not exist "%_LicensesPath%\\ProPlus*.xrm-ms" (...): Verifica l'esistenza di specifici file di licenza per Office. Se non sono presenti, vengono mostrati dei messaggi di errore.
+
+if exist "%_LicensesPath%\\Word2019VL_KMS_Client_AE*.xrm-ms" (set "_tag=2019"&set "_ons= 2019"): Controlla l'esistenza di una licenza specifica per Word 2019 e imposta alcune variabili di conseguenza.
+Gestione delle Licenze di Office e Query del Registro
+set "_Con15fig=HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun\\Configuration /v ProductReleaseIds", ...: Imposta variabili che contengono percorsi nel registro di sistema relativi a Office 2013.
+
+for /f "skip=2 tokens=2*" %%a in (...): Usa un ciclo for per interrogare il registro di sistema e ottenere informazioni sulle installazioni di Office 2013.
+
+set "_Licenses15Path=%_Install15Root%\\Licenses": Imposta la variabile _Licenses15Path al percorso in cui si trovano i file di licenza di Office 2013.
+
+Verifiche e Controlli di Errore
+if "%_Product15Ids%"=="" (...): Verifica se gli ID del prodotto per Office 2013 sono stati trovati e, in caso contrario, esegue una sezione di codice specifica.
+
+if not exist "%_Licenses15Path%\\ProPlus*.xrm-ms" (...): Controlla l'esistenza di file di licenza specifici e, se non trovati, mostra un messaggio di errore.
+
+if %winbuild% LSS 9200 if not exist "%_OSPP15VBS%" (...): Verifica la presenza dello script OSPP.vbs che è utilizzato per la gestione delle licenze di Office.
+
+Controllo delle Versioni di Office
+:CheckC2R, set _OMSI=0, if %_Office16% EQU 0 (...): Questa sezione sembra iniziare un controllo per determinare quale versione di Office è installata e se gli strumenti di licenza corrispondenti sono presenti.
+Controllo delle Licenze di Office e del Registro di Sistema
+for /f "skip=2 tokens=2*" %%a in (...): Utilizza un ciclo for per interrogare il registro di sistema per determinare la presenza di Office 2013 e Office 2010, in particolare cercando la presenza di uno script OSPP.VBS.
+
+if %winbuild% GEQ 9200 (...) else (...): Questa sezione configura variabili diverse a seconda della versione di Windows. Ad esempio, per le versioni di Windows uguali o superiori a 9200 (Windows 8/8.1 e Windows 10), vengono impostate alcune variabili come _spp, _sps, _vbsi e _vbsf.
+
+Controllo degli Errori e Flusso dello Script
+if "%_wmi%"=="" (...): Questa sezione controlla se è stata rilevata una versione WMI (Windows Management Instrumentation) e, in caso contrario, genera un errore e invoca un sotto-programma chiamato :CheckWS.
+
+set _Retail=0, set "_ocq=ApplicationID=\'%_oApp%\' AND LicenseStatus=\'1\' AND PartialProductKey is not NULL": Imposta alcune variabili per ulteriori controlli relativi alle licenze di Office.
+
+if %_Retail% EQU 0 if %_OMSI% EQU 0 call :oppcln: Se non è stata rilevata una licenza al dettaglio e lo script OSPP.VBS non è presente, viene chiamata una subroutine chiamata :oppcln per pulire le licenze di Office.
+
+Gestione delle Licenze e delle Versioni di Office
+:oppcln, set rancopp=1, %_Nul3% %_psc% (...): Questa sezione sembra essere responsabile della pulizia delle licenze di Office.
+
+:oppchk, set _O16O365=0, set _C16Msg=0, set _C15Msg=0: Questa sezione inizializza alcune variabili per ulteriori controlli e operazioni relative alle licenze di Office.
+Gestione delle Licenze e delle Versioni di Office
+set _O21Ids=ProPlus2021,ProjectPro2021,VisioPro2021, ...: Imposta variabili con gli ID dei prodotti Office per le versioni 2021, 2019 e 2016.
+
+set _RetIds=%_V21Ids%,Professional2021,HomeBusiness2021,...: Imposta una variabile con gli ID dei prodotti Office che sono versioni al dettaglio.
+
+set _Suites=Mondo,O365ProPlus,...: Imposta una variabile con gli ID delle suite Office.
+
+set _PrjSKU=ProjectPro,ProjectStd,...: Imposta una variabile con gli SKU dei prodotti Project.
+
+set _VisSKU=VisioPro,VisioStd,...: Imposta una variabile con gli SKU dei prodotti Visio.
+
+Controllo delle Licenze e del Registro di Sistema
+echo %_ProductIds%>"!_temp!\\crvProductIds.txt": Salva gli ID dei prodotti Office in un file temporaneo.
+
+for %%a in (%_RetIds%,ProPlus) do (set _%%a=0): Inizializza le variabili per gli ID dei prodotti Office a 0.
+
+findstr /I /C:"%%aRetail" "!_temp!\\crvProductIds.txt" %_Nul1% && set _%%a=1: Utilizza findstr per cercare gli ID dei prodotti Office nelle versioni al dettaglio e imposta la variabile corrispondente a 1 se trovata.
+
+reg query %_PRIDs%\\ProPlusRetail.16 %_Nul3% && (...): Esegue query del registro per cercare le versioni al dettaglio e a volume di Office ProPlus 2016 e imposta le variabili corrispondenti.
+Controllo delle Licenze di Office
+findstr /I /C:"%%aRetail" "!_temp!\\crvProductIds.txt" %_Nul1% && (...): Usa findstr per cercare gli ID dei prodotti Office nelle versioni al dettaglio e imposta la variabile corrispondente a 0 se trovata. Questo viene fatto per diverse versioni di Office come Office 2016 (aC2R16), Office 2019 (aC2R19) e Office 2021 (aC2R21).
+
+find /i "Office16ProPlusVL_MAK" "!_temp!\\crvRetail.txt" %_Nul1% && (...): Cerca informazioni sulle licenze MAK (Multiple Activation Key) per Office ProPlus 2016 e imposta la variabile _ProPlus a 0 se trovata.
+
+set "_qr=%_zz1% %_spp% %_zz2% "ApplicationID=\'%_oApp%\' AND LicenseFamily like \'Office16O365%%\'" %_zz3% LicenseFamily %_zz4%": Imposta una variabile per una query che sarà usata successivamente per cercare informazioni su licenze specifiche.
+
+Flusso di Controllo dello Script
+if %sub_o365% EQU 1 (...): Controlla se una sottoscrizione di Office 365 è attiva e imposta alcune variabili a 0.
+
+if %sub_proj% EQU 1 (...): Controlla se una sottoscrizione di Microsoft Project è attiva e imposta alcune variabili a 0.
+
+if %sub_vsio% EQU 1 (...): Controlla se una sottoscrizione di Microsoft Visio è attiva e imposta alcune variabili a 0.
+Gestione delle Licenze di Office
+for %%a in (%_RetIds%,ProPlus) do if !_%%a! EQU 1 (...): Esegue un ciclo per controllare la presenza di vari tipi di licenze al dettaglio per Office (come ProPlus) e imposta una variabile _C16Msg se trova una corrispondenza.
+
+if %_C16Msg% EQU 1 (...): Se _C16Msg è impostato a 1, visualizza un messaggio che indica la conversione delle licenze Office da C2R (Click-to-Run) a Volume.
+
+for %%# in ("!_LicensesPath!\\client-issuance-*.xrm-ms") do (...): Esegue un ciclo per ogni file di licenza nel percorso specificato e li installa utilizzando uno script VBS.
+
+call :InsLic O365ProPlus DRNV7-VGMM2-B3G9T-4BF84-VMFTK: Chiama una subroutine per installare una licenza specifica per Office 365 ProPlus.
+
+if !_Mondo! EQU 1 (...): Controlla la presenza della licenza Mondo e esegue operazioni corrispondenti.
+
+Flusso di Controllo e Condizioni
+if %_C16Msg% EQU 0 (...): Controlla se _C16Msg è impostato a 0 e, in tal caso, va alle etichette :R15V o :GVLKC2R a seconda della presenza di altre versioni di Office.
+
+if !_O365ProPlus! EQU 1 set _O16O365=1: Imposta la variabile _O16O365 a 1 se la licenza Office 365 ProPlus è presente.
+Gestione delle Licenze di Office
+Le righe con if !_ProPlus2021! EQU 1 (...), if !_ProPlus2019! EQU 1 (...), if !_ProPlus! EQU 1 (...) e così via controllano la presenza di specifiche versioni di Office (2021, 2019, 2016) e chiamano una subroutine per installare la licenza appropriata usando call :InsLic.
+
+I comandi echo visualizzano messaggi all'utente per indicare quale licenza sta per essere installata, come echo ProPlus 2021 Suite o echo Professional 2019 Suite.
+
+Le righe che iniziano con for %%a in (ProjectPro,VisioPro,ProjectStd,VisioStd) do if !_%%a2021! EQU 1 (...) eseguono cicli per controllare la presenza di specifiche versioni di Project e Visio (2021, 2019) e chiamano una subroutine per installare la licenza appropriata.
+
+Flusso di Controllo dello Script
+Le condizioni multiple in ciascuna istruzione if servono per evitare la sovrapposizione di licenze. Ad esempio, if !_ProPlus2021! EQU 0 if !_ProPlus2019! EQU 0 (...) assicura che solo una versione di una licenza specifica venga installata.
+Gestione delle Licenze di Office
+for %%a in (HomeBusiness,HomeStudent) do if !_%%a2021! EQU 1 (...): Questo ciclo verifica la presenza di specifiche versioni di Office come "HomeBusiness" e "HomeStudent" per l'anno 2021. Se presente, chiama una subroutine per installare la licenza Standard 2021.
+
+for %%a in (%_A21Ids%,OneNote) do if !_%%a! EQU 1 (...): Esegue un ciclo per controllare la presenza di diverse applicazioni Office come specificato nella variabile _A21Ids e OneNote per l'anno 2021. Chiama una subroutine per installare la licenza corrispondente.
+
+for %%a in (%_A16Ids%) do if !_%%a2019! EQU 1 (...): Simile al ciclo precedente, ma per applicazioni Office dell'anno 2019.
+
+for %%a in (Access) do if !_%%a2021! EQU 1 (...): Questo ciclo controlla specificamente per l'applicazione Access per l'anno 2021. Se presente, chiama una subroutine per installare la licenza corrispondente.
+
+Flusso di Controllo dello Script
+Ogni istruzione if all'interno dei cicli for è accompagnata da molte altre condizioni if nidificate per assicurare che solo una versione di una licenza specifica venga installata, evitando così conflitti.
+Gestione delle Licenze di Office
+for %%a in (Access) do if !_%%a! EQU 1 (...): Controlla specificamente per l'applicazione Access per diverse versioni. Se presente, chiama una subroutine per installare la licenza corrispondente.
+
+for %%a in (SkypeforBusiness) do if !_%%a2021! EQU 1 (...): Controlla per l'applicazione Skype for Business per l'anno 2021 e, se presente, installa la licenza corrispondente.
+
+for %%a in (SkypeforBusiness) do if !_%%a2019! EQU 1 (...): Stessa cosa, ma per l'anno 2019.
+
+for %%a in (SkypeforBusiness) do if !_%%a! EQU 1 (...): Stessa cosa, ma per l'anno 2016.
+
+Flusso di Controllo dello Script
+if %_Office15% EQU 1 (goto :R15V) else (goto :GVLKC2R): Va all'etichetta :R15V se la variabile _Office15 è impostata a 1, altrimenti va all'etichetta :GVLKC2R.
+
+set _O15Ids=Standard,ProjectPro,VisioPro,ProjectStd,VisioStd,Access,Lync: Imposta una variabile con gli ID dei prodotti per Office 2013.
+
+for %%a in (%_R15Ids%,ProPlus) do (set _%%a=0): Inizializza le variabili per gli ID dei prodotti Office 2013 a 0.
+Gestione delle Licenze di Office
+find /i "OfficeProPlusVL_KMS_Client" "!_temp!\\crvVolume.txt" %_Nul1% && (...): Cerca la presenza di una licenza KMS per Office ProPlus e imposta una variabile _ProPlus a seconda del risultato.
+
+if %_Retail% EQU 1 for %%a in (%_R15Ids%) do (...): Questo blocco controlla se varie versioni di licenze al dettaglio di Office 2013 sono presenti, utilizzando una serie di comandi find /i.
+
+set "_qr=%_zz1% %_spp% %_zz2% "ApplicationID=\'%_oApp%\' AND LicenseFamily like \'OfficeO365%%\'" %_zz3% LicenseFamily %_zz4%": Imposta una variabile per una query di licenza Office 365.
+
+for %%a in (%_R15Ids%,ProPlus) do if !_%%a! EQU 1 (set _C15Msg=1): Imposta una variabile _C15Msg se una qualsiasi licenza al dettaglio di Office 2013 è presente.
+
+for %%# in ("!_Licenses15Path!\\client-issuance-*.xrm-ms") do (...): Questo ciclo installa tutti i file di licenza presenti in una directory specificata.
+
+call :Ins15Lic O365ProPlus DRNV7-VGMM2-B3G9T-4BF84-VMFTK: Chiama una subroutine per installare una licenza specifica per Office 365 ProPlus.
+
+Flusso di Controllo dello Script
+if %_C15Msg% EQU 1 if %_C16Msg% EQU 0 (...): Questo blocco condizionale visualizza un messaggio all'utente per informarlo che le licenze Office C2R saranno convertite in licenze Volume.
+
+if %_C15Msg% EQU 0 goto :GVLKC2R: Va all'etichetta :GVLKC2R se la variabile _C15Msg è impostata a 0.
+Gestione delle Licenze di Office 2013
+if !_Mondo! EQU 0 call :Ins15Lic Mondo: Chiama una subroutine per installare una licenza "Mondo" se la variabile _Mondo è impostata a 0.
+
+if !_O365SmallBusPrem! EQU 1 (...): Controlla la presenza di una licenza "O365SmallBusPrem" e, se presente, imposta la variabile _O365ProPlus a 1 e chiama una subroutine per installare la licenza corrispondente.
+
+if !_O365HomePrem! EQU 1 (...): Controlla la presenza di una licenza "O365HomePrem" e segue una logica simile alla precedente.
+
+if !_O365Business! EQU 1 (...): Controlla la presenza di una licenza "O365Business" e segue una logica simile.
+
+if !_SPD! EQU 1 (...): Controlla la presenza di una licenza SharePoint Designer e, se presente, chiama una subroutine per installare una licenza "Mondo".
+
+if !_ProPlus! EQU 1 (...): Controlla la presenza di una licenza "ProPlus" e, se presente, chiama una subroutine per installare la licenza corrispondente.
+
+if !_Professional! EQU 1 (...): Controlla la presenza di una licenza "Professional" e, se presente, chiama una subroutine per installare una licenza "ProPlus".
+
+if !_Standard! EQU 1 (...): Controlla la presenza di una licenza "Standard" e, se presente, chiama una subroutine per installare la licenza corrispondente.
+
+for %%a in (ProjectPro,VisioPro,ProjectStd,VisioStd) do (...): Esegue un ciclo per verificare la presenza di diverse versioni di Project e Visio e, se presenti, chiama una subroutine per installare le licenze corrispondenti.
+
+for %%a in (HomeBusiness,HomeStudent) do (...): Esegue un ciclo per controllare la presenza di licenze "HomeBusiness" o "HomeStudent" e, se presenti, chiama una subroutine per installare una licenza "Standard".
+
+Flusso di Controllo dello Script
+Variabili come _O365ProPlus vengono impostate a 1 in vari punti per tenere traccia delle licenze installate o da installare.
+Gestione delle Licenze di Office 2013
+for %%a in (%_A15Ids%) do if !_%%a! EQU 1 (...): Questo ciclo verifica la presenza di diverse applicazioni di Office 2013 e, se presenti, chiama una subroutine per installare la licenza appropriata.
+
+for %%a in (Access) do if !_%%a! EQU 1 (...), for %%a in (Lync) do if !_%%a! EQU 1 (...): Simili al ciclo precedente, ma specifici per le applicazioni Access e Lync. Se presenti, vengono chiamate subroutines per installare le licenze corrispondenti.
+
+Subroutine per Installare le Licenze
+:InsLic: Questa è una subroutine utilizzata per installare licenze. Le variabili _ID, _patt, _pkey e _kpey vengono impostate in base ai parametri passati alla subroutine.
+
+reg delete %_Config% /f /v %_ID%.OSPPReady %_Nul3%: Elimina un valore del registro che potrebbe interferire con l'installazione della licenza.
+
+"!_Integrator!" /I /License PRIDName=%_ID%.16 %_pkey% PackageGUID="%_GUID%" PackageRoot="!_InstallRoot!" %_Nul1%: Questa linea sembra utilizzare un'applicazione esterna per installare una licenza.
+
+Flusso di Controllo dello Script
+goto :GVLKC2R: Questa istruzione fa saltare l'esecuzione dello script all'etichetta :GVLKC2R.
+
+set fallback=0: Inizializza una variabile fallback a 0, che sembra essere utilizzata per gestire errori o casi in cui l'installazione della licenza fallisce.
+
+%_qr% %_Nul2% | find /i "%_patt%" %_Nul1% || (set fallback=1): Esegue una query WMI e cerca una stringa specifica nel risultato. Se non la trova, imposta fallback a 1.
+Subroutine per Installare le Licenze
+:Ins15Lic: Questa è la continuazione della subroutine per installare le licenze di Office 2013. Le variabili _ID, _patt, e _pkey vengono impostate in base ai parametri passati alla subroutine.
+
+reg delete %_OSPP15Ready% /f /v %_ID%.OSPPReady %_Nul3%: Elimina un valore del registro che potrebbe interferire con l'installazione della licenza.
+
+for %%# in ("!_Licenses15Path!\\%_patt%*.xrm-ms") do (...): Questo ciclo attraversa tutti i file di licenza che corrispondono a un determinato pattern nella directory specificata e chiama un VBScript per installarli.
+
+set "_qr=wmic path %_sps% where Version=\'%_wmi%\' call InstallProductKey ProductKey="%_pkey%": Imposta una variabile per una query WMI che installerà la chiave del prodotto.
+
+if defined _pkey %_qr% %_Nul3%: Esegue la query WMI se la variabile _pkey è definita.
+
+reg add %_OSPP15Ready% /f /v %_ID%.OSPPReady /t %_OSPP15ReadT% /d 1 %_Nul1%: Aggiunge un valore al registro per indicare che la licenza è stata installata con successo.
+
+Gestione dei File di Licenza
+for %%# in ("!_LicensesPath!\\%1E5R*.xrm-ms") do (...), for %%# in ("!_LicensesPath!\\%1EDUR*.xrm-ms") do (...), ecc.: Questi cicli attraversano diversi file di licenza nella directory specificata e aggiungono i loro nomi a una variabile _lsfs.
+
+for %%# in (!_lsfs!) do (...): Questo ciclo attraversa tutti i nomi di file memorizzati nella variabile _lsfs e chiama un VBScript per installarli.
+Controllo dello Stato di Attivazione e Gestione delle Licenze
+:GVLKC2R: Un'etichetta che sembra essere il punto di partenza per una sezione di codice che gestisce le licenze.
+
+set _CtRMsg=0: Inizializza una variabile che sarà utilizzata per controllare i messaggi relativi alla conversione delle licenze al dettaglio in licenze volume.
+
+for %%a in (%_RetIds%,ProPlus) do set "_%%a=": Resetta variabili relative alle licenze al dettaglio di Office.
+
+set "_qr=wmic path %_sps% where version=\'%_wmi%\' call RefreshLicenseStatus": Imposta una query WMI per aggiornare lo stato delle licenze.
+
+:casVm: Un'altra etichetta che sembra essere il punto di partenza per una sezione di codice che verifica lo stato di attivazione di Windows e Office.
+
+cscript //nologo slmgr.vbs /dli e cscript //nologo slmgr.vbs /xpr: Esegue script VBS per visualizzare informazioni dettagliate e lo stato di attivazione di Windows.
+
+net start sppsvc /y >nul 2>&1: Avvia il servizio di protezione del software di Windows.
+
+Flusso di Controllo dello Script
+if exist "%SysPath%\\spp\\store_test\\2.0\\tokens.dat" if %rancopp% EQU 1 if %_CtRMsg% EQU 1 (...): Un'istruzione condizionale complessa che verifica l'esistenza di un file specifico e il valore di alcune variabili prima di eseguire comandi per rigenerare i dati di licenza.
+
+goto :%_sC2R%: Salta a un'etichetta determinata dinamicamente dalla variabile _sC2R.
+Verifica dello Stato di Attivazione di Office
+:casVo16, :casVo13: Etichette che fungono da punti di partenza per sezioni di codice che controllano lo stato di attivazione di Office 2016 e 2013, rispettivamente.
+
+for /f "skip=2 tokens=2*" %%a in ('"reg query HKLM\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\InstallRoot /v Path" 2>nul') do (set "office=%%b"): Esegue una query del registro per determinare il percorso di installazione di Office 2016.
+
+if exist "!office!\\ospp.vbs" (...): Controlla l'esistenza di uno script VBS specifico (ospp.vbs) nel percorso di installazione di Office. Se esiste, esegue lo script per ottenere lo stato di attivazione di Office.
+
+if %_wow%==0 goto :casVo13: Salta alla sezione di codice che controlla lo stato di attivazione di Office 2013 se la variabile _wow è impostata a 0 (che potrebbe indicare una piattaforma a 32 bit).
+
+cscript //nologo "!office!\\ospp.vbs" /dstatus: Esegue lo script VBS per mostrare lo stato di attivazione di Office.
+
+echo *** Office 2016 %_bit%-bit Status ***, echo *** Office 2013 %_bit%-bit Status ***: Visualizza messaggi che indicano quale versione e architettura di Office stanno per essere controllate.
+Verifica dello Stato di Attivazione di Office 2010 e Office C2R
+:casVo10: Etichetta che sembra fungere da punto di partenza per una sezione di codice che controlla lo stato di attivazione di Office 2010.
+
+for /f "skip=2 tokens=2*" %%a in (...): Esegue una query del registro per trovare il percorso di installazione di Office 2010 e lo assegna alla variabile office.
+
+echo *** Office 2010 %_bit%-bit Status ***: Visualizza un messaggio che indica che lo stato di attivazione di Office 2010 sta per essere controllato.
+
+cscript //nologo "!office!\\ospp.vbs" /dstatus: Esegue uno script VBS per visualizzare lo stato di attivazione di Office 2010.
+
+:casVc16: Etichetta che sembra fungere da punto di partenza per una sezione di codice che controlla lo stato di attivazione di Office C2R (Click-to-Run).
+
+if exist "!office!\\ospp.vbs" (set _sO16vbs=1): Controlla l'esistenza di uno script VBS nel percorso di installazione di Office C2R. Se esiste, imposta una variabile _sO16vbs a 1.
+
+echo *** Office 2016-2021 C2R Status ***, echo *** Office 2013-2021 Status ***: Visualizza messaggi che indicano quale versione e architettura di Office C2R stanno per essere controllate.
+Verifica dello Stato di Attivazione di Office C2R (Click-to-Run)
+:casVc13, :casVc10: Etichette che fungono da punti di partenza per sezioni di codice che controllano lo stato di attivazione di Office C2R per le versioni 2013 e 2010.
+
+if %_sO16vbs% EQU 1 goto :casVc10: Salta alla sezione di codice che controlla lo stato di attivazione di Office 2010 se la variabile _sO16vbs è impostata a 1.
+
+reg query HKLM\\SOFTWARE\\Microsoft\\Office\\15.0\\ClickToRun /v InstallPath >nul 2>&1 || (...): Esegue una query del registro per determinare il percorso di installazione di Office C2R per la versione 2013.
+
+if exist "%ProgramFiles%\\Microsoft Office\\Office15\\ospp.vbs" (...): Controlla l'esistenza di un file script VBS nel percorso di installazione di Office. Se esiste, esegue lo script per ottenere lo stato di attivazione.
+
+echo *** Office 2013 C2R Status ***, echo *** Office 2010 C2R Status ***: Visualizza messaggi che indicano quale versione di Office C2R sta per essere controllata.
+
+cscript //nologo "!office!\\ospp.vbs" /dstatus: Esegue uno script VBS per mostrare lo stato di attivazione di Office C2R.
+
+:casVend: Un'etichetta che sembra segnare la fine della sezione di codice che controlla lo stato di attivazione di Office C2R.
+Verifica dello Stato di Attivazione di Windows e Office tramite WMI
+:casWm: Etichetta che funge da punto di partenza per una sezione di codice che controlla lo stato di attivazione di Windows e Office tramite WMI (Windows Management Instrumentation).
+
+set wspp=SoftwareLicensingProduct, set wsps=SoftwareLicensingService, ecc.: Imposta variabili per le classi WMI utilizzate per controllare lo stato di attivazione di Windows e Office.
+
+for %%# in (spp_get,ospp_get,cW1nd0ws,sppw,c0ff1ce15,sppo,osppsvc,ospp14,ospp15) do set "%%#=": Inizializza variabili che verranno utilizzate per memorizzare i risultati delle query WMI.
+
+`set "spp_get=Description, DiscoveredKeyManagementServiceMachineName, (...)": Specifica quali proprietà devono essere recuperate dalla classe WMI per la licenza di Windows.
+
+dir /b /s /a:-d "!_Local!\\Microsoft\\Office\\Licenses\\*1*" 1>nul 2>nul && set _Identity=1: Verifica l'esistenza di specifici file di licenza per Office e imposta una variabile _Identity a 1 se esistono.
+
+net start sppsvc /y >nul 2>&1: Avvia il servizio di protezione del software di Windows.
+
+call :casWpkey %wspp% %winApp% cW1nd0ws sppw: Chiama una subroutine per controllare lo stato di attivazione di Windows utilizzando WMI.
+
+if %OsppHook% NEQ 0 (...): Verifica una variabile OsppHook e, se non è zero, esegue ulteriori operazioni per controllare lo stato di attivazione di Office.
+Verifica dello Stato di Attivazione di Windows e Office tramite WMI (continuazione)
+:casWcon, :casWospp: Etichette che fungono da punti di partenza per sezioni di codice che controllano lo stato di attivazione di Windows e Office.
+
+set winID=1, set winID=0: Impostano una variabile winID che potrebbe essere usata per tracciare lo stato di attivazione di Windows.
+
+set "_qr=%_zz7% %wspp% %_zz2% %_zz5%ApplicationID=\'%winApp%\' and PartialProductKey is not null%_zz6% %_zz3% ID %_zz8%": Prepara una query WMI per recuperare informazioni sullo stato di attivazione di Windows.
+
+call :casWdet "%wspp%" "%wsps%" "%spp_get%": Chiama una subroutine che esegue dettagliati controlli WMI sull'attivazione di Windows.
+
+set verbose=1, set verbose=0: Impostano una variabile verbose che potrebbe essere usata per controllare l'output dettagliato.
+
+if defined osppsvc goto :casWospp: Controlla se la variabile osppsvc è definita e, in tal caso, passa alla sezione di codice che verifica lo stato di attivazione di Office.
+
+echo *** Office Status ***: Visualizza un messaggio che indica che lo stato di attivazione di Office sta per essere controllato.
+
+if %verbose% EQU 1 (...): Controlla il valore della variabile verbose e, se è 1, esegue ulteriori operazioni per visualizzare dettagli sullo stato di attivazione di Office.
+Dettagli e Output dello Stato di Attivazione
+:casWdet: Etichetta per una subroutine che recupera dettagli sullo stato di attivazione di Windows e Office.
+
+for %%# in (%~3) do set "%%#=": Inizializza variabili che verranno utilizzate per memorizzare i risultati delle query WMI.
+
+set "_qr="wmic path %~1 where ID=\'%chkID%\' get %~3 /value" ^| findstr ^=": Esegue una query WMI per ottenere dettagli sullo stato di attivazione.
+
+set /a _gpr=(GracePeriodRemaining+1440-1)/1440: Calcola il periodo di grazia rimanente in giorni.
+
+echo %Description%| findstr /i VOLUME_KMSCLIENT 1>nul && (set cKmsClient=1&set _mTag=Volume): Controlla la descrizione per vedere se si tratta di un client KMS e imposta variabili di conseguenza.
+
+set "LicenseReason=%=ExitCode%": Imposta una variabile con il motivo dello stato di licenza corrente.
+
+set "LicenseMsg=Time remaining: %GracePeriodRemaining% minute(s) (%_gpr% day(s))": Imposta un messaggio con il tempo rimanente per l'attivazione.
+
+title Check Activation Status [wmi]: Imposta il titolo della finestra del prompt dei comandi.
+
+if %LicenseStatus% EQU 0 (...): Imposta variabili e messaggi a seconda dello stato di licenza. Ad esempio, se LicenseStatus è 0, allora la licenza è "Non autorizzata".
+
+if %LicenseStatus% EQU 1 (...): Se LicenseStatus è 1, allora la licenza è "Autorizzata", e vengono impostati ulteriori dettagli come il messaggio di scadenza.
+Dettagli e Output dello Stato di Attivazione (continuazione)
+if %LicenseStatus% EQU 2 (...), if %LicenseStatus% EQU 3 (...), ecc.: Imposta variabili e messaggi in base allo stato di licenza corrente. Ad esempio, se LicenseStatus è 2, la licenza è in "Initial grace period".
+
+if not defined cKmsClient exit /b: Esce dalla subroutine se la variabile cKmsClient non è definita, il che suggerisce che la macchina non è un client KMS.
+
+set "KmsReg=Registered KMS machine name: %KeyManagementServiceMachine%:%KeyManagementServicePort%": Imposta una variabile con il nome della macchina KMS registrata e la porta utilizzata per l'attivazione.
+
+set "_qr="wmic path %~2 get ClientMachineID, KeyManagementServiceHostCaching /value" ^| findstr ^=": Esegue una query WMI per ottenere l'ID della macchina client e lo stato della cache dell'host KMS.
+
+if /i %KeyManagementServiceHostCaching%==True (set KeyManagementServiceHostCaching=Enabled) else (set KeyManagementServiceHostCaching=Disabled): Imposta una variabile in base allo stato della cache dell'host KMS.
+
+if %winbuild% LSS 9200 exit /b: Esce dalla subroutine se la build di Windows è inferiore a 9200.
+
+if /i %~1==%ospp% exit /b: Esce dalla subroutine se la prima variabile passata alla subroutine corrisponde alla variabile ospp, che potrebbe essere relativa all'attivazione di Office.
+Dettagli e Output dello Stato di Attivazione (continuazione)
+if %VLActivationTypeEnabled% EQU 3 (...): Imposta il tipo di attivazione a "Token" se la variabile VLActivationTypeEnabled è uguale a 3.
+
+if %VLActivationTypeEnabled% EQU 2 (...): Imposta il tipo di attivazione a "KMS" se la variabile è uguale a 2.
+
+if %winbuild% LSS 9600 exit /b: Esce dalla subroutine se la build di Windows è inferiore a 9600.
+
+:casWout: Etichetta che segna l'inizio di una sezione di codice che visualizza dettagli sullo stato di attivazione.
+
+echo Name: %Name%, echo Description: %Description%, ecc.: Visualizza varie informazioni relative allo stato di attivazione, come nome, descrizione e ID di attivazione.
+
+if not defined cKmsClient (...): Verifica se la variabile cKmsClient è definita e, in caso contrario, esce dalla subroutine.
+
+echo Most recent activation information:: Visualizza un messaggio che indica che seguiranno le informazioni più recenti sull'attivazione.
+
+echo Key Management Service client information: Visualizza un messaggio che indica che seguiranno informazioni sul client del servizio di gestione delle chiavi (KMS).
+
+echo. Client Machine ID (CMID): %ClientMachineID%: Visualizza l'ID della macchina client.
+
+if defined ExpireMsg echo.&echo. %ExpireMsg%: Visualizza un messaggio relativo alla scadenza della licenza, se definito.
+
+:casWend: Etichetta che segna la fine di questa sezione del codice.
+Dettagli e Output dello Stato di Attivazione per Office vNext
+if %_Identity% EQU 1 if %_prsh% EQU 1 (...): Verifica se alcune condizioni specifiche sono soddisfatte (probabilmente se PowerShell è disponibile e se un certo tipo di licenza è presente), e in tal caso esegue il codice seguente.
+
+echo *** Office vNext Status ***: Visualizza un titolo per indicare che le informazioni sullo stato di attivazione di Office vNext saranno mostrate.
+
+%_psc% "$f=[IO.File]::ReadAllText(\'!_batp!\') -split \':vNextDiag\\:.*\';iex ($f[1])": Esegue un comando PowerShell che legge un file e lo esegue, probabilmente per ottenere dettagli sullo stato di attivazione di Office vNext.
+
+:vNextDiag:: Etichetta che segna l'inizio di una sezione di script PowerShell.
+
+function PrintModePerPridFromRegistry, function PrintSharedComputerLicensing: Definiscono funzioni PowerShell che eseguono operazioni specifiche, come la lettura di chiavi del registro per ottenere informazioni sulla licenza di Office.
+
+Get-ItemProperty -Path $scaRegKey -ErrorAction Ignore | Select-Object -ExpandProperty "SharedComputerLicensing" -ErrorAction Ignore: Esegue una query PowerShell per ottenere informazioni da una chiave del registro relativa alla licenza condivisa del computer.
+
+$scaModeValue = $scaValue -Or $scaValue2 -Or $scaPolicyValue: Combina i valori di più chiavi del registro per determinare il valore finale della modalità di licenza condivisa del computer.
+
+
+## IL LAVORO NON E COMPLETO, TUTTAVIA POTRETE FARVI UNA VOSTRA IDEA SUL FUNZIONAMENTO DELLO SCRIPT E SU POSSIBILI RISCHI. Il processo di analisi e stato portato avanti a "pezzi" grazie l'aiuto di una IA e per questo ringrazio ChatBOT.
+## lo scopo finale e quello di capire ogni comando e non solo avviarlo pensando e sperando che essendo tutto visibile sia sicuro... non dico che questo sia dannoso, ma lascio a voi la possibilità di decidere.
